@@ -1,0 +1,34 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "khmer-id-parser"
+version = "0.1.0"
+description = "Extract structured fields from OCR text of Cambodian national ID cards."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "Yut" }]
+keywords = ["khmer", "cambodia", "ner", "id-card", "ocr", "crf"]
+dependencies = [
+    "torch>=2.0.0",
+    "pytorch-crf",
+]
+
+# Training & data-generation tooling lives in scripts/ and is never needed to
+# run inference. Install with:  pip install -e ".[train]"
+[project.optional-dependencies]
+train = ["tqdm", "matplotlib", "google-genai", "python-dotenv"]
+
+[project.scripts]
+khmer-id-parse = "khmer_id_parser.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["khmer_id_parser"]
+
+# Ship the weights + vocabularies inside the wheel so the package works offline.
+[tool.hatch.build.targets.wheel.force-include]
+"khmer_id_parser/assets/khmer_id_parser_v2.pth" = "khmer_id_parser/assets/khmer_id_parser_v2.pth"
+"khmer_id_parser/assets/char_to_idx.json"       = "khmer_id_parser/assets/char_to_idx.json"
+"khmer_id_parser/assets/tag_to_idx.json"        = "khmer_id_parser/assets/tag_to_idx.json"

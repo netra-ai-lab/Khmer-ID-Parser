@@ -24,15 +24,23 @@ A lightweight named-entity recognition model that extracts structured fields fro
 
 ```
 Khmer-ID-Parser/
-├── dataset.py          On-the-fly augmentation, vocab building, DataLoader
-├── model.py            CharCNN + BiLSTM + CRF architecture
-├── train.py            Training loop with step/epoch metrics logging
-├── inference.py        CLI and importable Python API
-├── plot_metrics.py     Generate training graphs from the metrics JSON
-├── checkpoints/
-│   ├── .gitkeep
-│   └── training_metrics.json   (auto-generated, safe to commit)
-├── sample_train.jsonl  Small sample for smoke-testing (optional)
+├── khmer_id_parser/          Installable package (one inference core, reused by every surface)
+│   ├── __init__.py           Public exports: KhmerIDParser, parse, ModelConfig, __version__
+│   ├── config.py             Constants + ModelConfig dataclass (mirrors checkpoint config)
+│   ├── model.py              CharCNN + BiLSTM + CRF architecture
+│   ├── postprocess.py        BIO spans → structured output schema
+│   ├── weights.py            resolve() + load_checkpoint()
+│   ├── parser.py             ★ KhmerIDParser core class + one-shot parse() helper
+│   ├── cli.py                CLI (the `khmer-id-parse` console script)
+│   └── assets/               Bundled weights + vocabularies (shipped in the wheel)
+├── scripts/                  Training & data tooling (not shipped in the wheel)
+│   ├── dataset.py            On-the-fly augmentation, vocab building, DataLoader
+│   ├── train.py              Training loop with step/epoch metrics logging
+│   ├── build_dataset.py      Build train/val JSONL from structured records
+│   ├── generate_data.py      Gemini-based synthetic name/mark generation
+│   └── plot_metrics.py       Generate training graphs from the metrics JSON
+├── checkpoints/              Training outputs (weights, metrics, plots)
+├── pyproject.toml
 └── requirements.txt
 ```
 
@@ -105,7 +113,7 @@ Input characters
 | Learning rate | 0.001 |
 | LR schedule | Cosine annealing |
 | Batch size | 64 |
-| Epochs | 10 |
+| Epochs | 5 |
 | Grad clip | 5.0 |
 | Weight decay | 0.01 |
 | CRF loss | `token_mean` (stable across sequence lengths) |
@@ -130,16 +138,15 @@ myenv\Scripts\activate
 # macOS / Linux:
 source myenv/bin/activate
 
-pip install -r requirements.txt
+# Inference only (installs the package + console script):
+pip install -e .
+
+# With training / data-generation tooling (scripts/):
+pip install -e ".[train]"
 ```
 
-**`requirements.txt`**
-```
-torch>=2.0.0
-pytorch-crf>=0.7.2
-tqdm
-matplotlib
-```
+The package bundles the trained weights and vocabularies, so inference works
+immediately after install — no separate download step.
 
 ---
 
@@ -150,15 +157,21 @@ matplotlib
 #   train_clean.jsonl  — training records
 #   val_clean.jsonl    — validation records
 
-python train.py
+pip install -e ".[train]"
+python scripts/train.py
 ```
 
-Checkpoints and metrics are saved to `checkpoints/`.
+Checkpoints and metrics are saved to `checkpoints/`. To make a freshly trained
+model the package default, copy it into the bundled assets:
+
+```bash
+cp checkpoints/khmer_id_parser_v2.pth khmer_id_parser/assets/
+```
 
 ### Plot training curves
 
 ```bash
-python plot_metrics.py
+python scripts/plot_metrics.py
 # → checkpoints/step_loss.png
 # → checkpoints/epoch_losses.png
 # → checkpoints/val_f1.png
@@ -166,47 +179,47 @@ python plot_metrics.py
 # → checkpoints/training_summary.png
 ```
 
-![Training summary](training_summary.png)
+![Training summary](checkpoints/training_summary.png)
 
 ---
 
 ## Inference
 
-### Command-line
+### Command-line  (`khmer-id-parse`)
 
 ```bash
 # From a text file — pretty JSON (default)
-python inference.py --file card.txt
+khmer-id-parse --file card.txt
 
 # From a text file — save output to a file
-python inference.py --file card.txt --output results/card.json
+khmer-id-parse --file card.txt --output results/card.json
 
 # Inline text (use $'...' in bash for literal newlines)
-python inference.py --text $'443322563\nគោន្តនាម...'
+khmer-id-parse --text $'443322563\nគោន្តនាម...'
 
 # Pipe from an OCR tool
-tesseract card.png stdout | python inference.py --stdin
+tesseract card.png stdout | khmer-id-parse --stdin
 
 # Output formats
-python inference.py --file card.txt --format json      # pretty JSON (default)
-python inference.py --file card.txt --format compact   # single-line JSON
-python inference.py --file card.txt --format tags      # character-level BIO alignment
+khmer-id-parse --file card.txt --format json      # pretty JSON (default)
+khmer-id-parse --file card.txt --format compact   # single-line JSON
+khmer-id-parse --file card.txt --format tags      # character-level BIO alignment
 
 # Output file extension auto-sets format
-python inference.py --file card.txt --output out.json    # pretty JSON
-python inference.py --file card.txt --output out.jsonl   # compact JSON
-python inference.py --file card.txt --output out.txt     # BIO tags
+khmer-id-parse --file card.txt --output out.json    # pretty JSON
+khmer-id-parse --file card.txt --output out.jsonl   # compact JSON
+khmer-id-parse --file card.txt --output out.txt     # BIO tags
 
-# Use a specific checkpoint
-python inference.py --file card.txt --checkpoint checkpoints/khmer_id_parser_v2.pth
+# Use a specific checkpoint (otherwise: $KHMER_ID_PARSER_CHECKPOINT, then bundled weights)
+khmer-id-parse --file card.txt --checkpoint checkpoints/khmer_id_parser_v1.pth
 ```
 
 ### Python API
 
 ```python
-from inference import KhmerIDParser
+from khmer_id_parser import KhmerIDParser, parse
 
-parser = KhmerIDParser("checkpoints/khmer_id_parser_v2.pth")
+parser = KhmerIDParser()               # bundled weights, auto device (cuda→cpu)
 
 # Full structured dict
 result = parser.parse(ocr_text)
@@ -223,7 +236,14 @@ tags = parser.tag(ocr_text)
 
 # Batch of cards
 results = parser.parse_batch([text1, text2, text3])
+
+# One-shot helper — caches a default parser, no explicit construction
+parse(ocr_text)                        # → structured dict
 ```
+
+Point at a different checkpoint either per-instance (`KhmerIDParser("other.pth")`)
+or globally via the `KHMER_ID_PARSER_CHECKPOINT` / `KHMER_ID_PARSER_DEVICE`
+environment variables.
 
 ### Extracted fields
 
@@ -255,7 +275,7 @@ results = parser.parse_batch([text1, text2, text3])
 
 **Expanding place names** — `dataset.py` uses the place names directly from your `.jsonl` records. The wider the variety of provinces, districts, and communes in your data, the more robust the address extraction will be.
 
-**Changing kernel sizes or hidden dimensions** — edit the constants at the top of `train.py`. The config is saved into the checkpoint, so `inference.py` will reconstruct the correct architecture automatically.
+**Changing kernel sizes or hidden dimensions** — edit the constants at the top of `scripts/train.py`. The config is saved into the checkpoint, so `khmer_id_parser` reconstructs the correct architecture automatically (via `ModelConfig.from_dict`).
 
 **Resuming training** — `training_metrics.json` is append-safe. If you stop mid-run and restart with the same `checkpoints/` directory, metrics accumulate rather than being overwritten.
 

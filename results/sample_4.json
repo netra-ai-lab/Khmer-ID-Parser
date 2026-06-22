@@ -1,0 +1,29 @@
+{
+  "id_number": "104592817",
+  "name_khmer": "មាសចិន្តា",
+  "name_latin": "MEAS CHENDA",
+  "date_of_birth": "14:08:1998",
+  "gender": "ស្រី",
+  "height_cm": 162,
+  "place_of_birth": {
+    "commune": "ភូមិអូរបីជាន់",
+    "district": "អូរជ្រៅ",
+    "province": "បន្ទាយមានជ័យ"
+  },
+  "address": {
+    "village": "ភូមិអូរបីជាន់",
+    "commune": "ឃុំអូរបីជាន់",
+    "district": "ស្រុកអូរជ្រៅ",
+    "province": "ខេត្តបន្ទាយមានជ័យ"
+  },
+  "validity": {
+    "issue_date": "១៥.០៨.២០១៦",
+    "expiry_date": null
+  },
+  "distinguishing_marks": "ប្រជ្រុយក្រោមភ្នែកឆ្វេង",
+  "mrz": [
+    "IDKHM104592817<<<<<<<<<<<<<<",
+    "9808146F2608147KHM<<<<<<<<<<8",
+    "MEAS<<CHENDA<<<<<<<<<<<<<<<<"
+  ]
+}

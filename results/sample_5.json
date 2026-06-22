@@ -1,0 +1,29 @@
+{
+  "id_number": "081239458",
+  "name_khmer": "កែវបញ្ញា",
+  "name_latin": "KEO  PANHA",
+  "date_of_birth": "22.11.2001",
+  "gender": "ប្រុស",
+  "height_cm": 175,
+  "place_of_birth": {
+    "commune": "ឃុំរវៀង",
+    "district": "ស្រុកសំរោង",
+    "province": "តាកែវ"
+  },
+  "address": {
+    "village": "ភូមិក្រាំង",
+    "commune": "ឃុំរវៀង",
+    "district": "សំរោង",
+    "province": "តាកែវ"
+  },
+  "validity": {
+    "issue_date": "២៣.១១.២០១៩",
+    "expiry_date": "២២.១១.២០២៩"
+  },
+  "distinguishing_marks": "គ្មាន",
+  "mrz": [
+    "IDKHM081239458<<<<<<<<<<<<<<",
+    "0111226M2911227KHM<<<<<<<<<<5",
+    "KEO<<PANHA<<<<<<<<<<<<<<<<<<"
+  ]
+}

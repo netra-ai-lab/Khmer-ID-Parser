@@ -1,4 +1,5 @@
+# Core inference dependencies (mirrors pyproject.toml [project.dependencies]).
+# Preferred install:  pip install -e .
+# Training / data tooling in scripts/:  pip install -e ".[train]"
 torch>=2.0.0
-google-genai
-python-dotenv
 pytorch-crf

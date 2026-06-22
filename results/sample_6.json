@@ -1,0 +1,29 @@
+{
+  "id_number": "010992341",
+  "name_khmer": "អ៊ុក សីហា",
+  "name_latin": "OUK SEYHA",
+  "date_of_birth": "09:09:1985",
+  "gender": "ប្រុស",
+  "height_cm": 168,
+  "place_of_birth": {
+    "commune": "សង្កាត់ផ្សារកណ្តាលទី១",
+    "district": "ខណ្ឌដូនពេញ",
+    "province": "ភ្នំពេញ"
+  },
+  "address": {
+    "village": "_",
+    "commune": "សង្កាត់ផ្សារកណ្តាលទី១",
+    "district": "ដូនពេញ",
+    "province": "ភ្នំពេញ"
+  },
+  "validity": {
+    "issue_date": "១០.០៩.២០០៥",
+    "expiry_date": "០៩.០៩.២០១៥,"
+  },
+  "distinguishing_marks": "សំលាកតូចចំ ០.៥សម ក្រោយក្រោមចុងចំព្នើមឆ្វេង",
+  "mrz": [
+    "IDKHM0109923415<<<<<<<<<<<<<",
+    "8509096M1509097KHM<<<<<<<<<<1",
+    "OUK<<SEYHA<<<<<<<<<<<<<<<<<<"
+  ]
+}

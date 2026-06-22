@@ -1,0 +1,29 @@
+{
+  "id_number": "02384715",
+  "name_khmer": "សុខ ដារ៉ា",
+  "name_latin": "SOK DARA",
+  "date_of_birth": "05.03.1992",
+  "gender": "ប្រុស",
+  "height_cm": 170,
+  "place_of_birth": {
+    "commune": "ឃុំស្វាយជ្រំ",
+    "district": "ស្រុកមេសាង",
+    "province": "ព្រៃវែង"
+  },
+  "address": {
+    "village": "ភូមិត្រពាំងធំ",
+    "commune": "ឃុំស្វាយជ្រំ",
+    "district": "ស្រុកមេសាង",
+    "province": "ព្រៃវែង"
+  },
+  "validity": {
+    "issue_date": "០៦.០៣.២០១៨",
+    "expiry_date": "០៥.០៣.២០២៨,"
+  },
+  "distinguishing_marks": "សំលាកតូចចំ ០.៣សម លើចិញ្ចើមស្ដាំ",
+  "mrz": [
+    "IDKHM1023847156<<<<<<<<<<<<<",
+    "9203056M2803057KHM<<<<<<<<<<2",
+    "SOK<<DARA<<<<<<<<<<<<<<<<<<<"
+  ]
+}
