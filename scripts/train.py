@@ -24,6 +24,12 @@ DROPOUT = 0.3
 
 WEIGHT_DECAY = 0.01
 
+# Stop once val F1 hasn't improved for this many epochs. The synthetic data is
+# near-separable, so F1 plateaus at ~1.0 within a couple of epochs; training past
+# that point has ~zero task gradient and lets AdamW + weight decay slowly drift the
+# weights off the solution (loss climbs, recall collapses). Early stopping prevents it.
+EARLY_STOP_PATIENCE = 3
+
 # How often (in steps) to record a step-level loss snapshot.
 LOG_EVERY = 50
 
@@ -149,14 +155,32 @@ def train():
         pad_idx          = char_vocab.char2idx["<PAD>"],
     ).to(DEVICE)
 
-    optimizer = optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
+    # Decay only the ≥2-D projection/conv/LSTM weight matrices. Excluding the CRF
+    # transitions, LayerNorm gains, biases, and embeddings keeps weight decay from
+    # shrinking the params that encode structured prediction — the main force behind
+    # the post-convergence loss drift. (CRF `transitions` is 2-D, so it needs the
+    # explicit name check; ndim<=1 alone would miss it.)
+    decay, no_decay = [], []
+    for name, p in model.named_parameters():
+        if not p.requires_grad:
+            continue
+        if p.ndim <= 1 or "crf" in name or "embedding" in name or "layer_norm" in name:
+            no_decay.append(p)
+        else:
+            decay.append(p)
+    optimizer = optim.AdamW(
+        [{"params": decay,    "weight_decay": WEIGHT_DECAY},
+         {"params": no_decay, "weight_decay": 0.0}],
+        lr=LEARNING_RATE,
+    )
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=EPOCHS, eta_min=1e-5)
 
     # 4. Metrics state (supports resuming)
-    metrics     = _load_metrics()
-    best_val_f1 = max((e["val_f1"] for e in metrics["epoch_stats"]), default=0.0)
-    global_step = metrics["step_losses"][-1]["global_step"] if metrics["step_losses"] else 0
-    t_start     = time.time()
+    metrics         = _load_metrics()
+    best_val_f1     = max((e["val_f1"] for e in metrics["epoch_stats"]), default=0.0)
+    global_step     = metrics["step_losses"][-1]["global_step"] if metrics["step_losses"] else 0
+    epochs_no_improve = 0
+    t_start         = time.time()
 
     # 5. Training loop
     for epoch in range(1, EPOCHS + 1):
@@ -226,6 +250,7 @@ def train():
         # ── Save best checkpoint by F1 (more meaningful than val loss) ─────
         if f1_dict["f1"] > best_val_f1:
             best_val_f1 = f1_dict["f1"]
+            epochs_no_improve = 0
             torch.save({
                 "model_state": model.state_dict(),
                 "char2idx":    char_vocab.char2idx,
@@ -242,6 +267,16 @@ def train():
                 },
             }, "checkpoints/khmer_id_parser_v2.pth")
             print(f"  ⭐ Best model saved  (val_f1={best_val_f1:.4f})")
+        else:
+            epochs_no_improve += 1
+
+        # ── Early stopping ─────────────────────────────────────────────────
+        # Once val F1 plateaus there is no task gradient left; training further
+        # only lets AdamW + weight decay drift the weights and inflate the loss.
+        if epochs_no_improve >= EARLY_STOP_PATIENCE:
+            print(f"\nEarly stopping: val F1 did not improve for "
+                  f"{EARLY_STOP_PATIENCE} epoch(s). Best val_f1={best_val_f1:.4f}.")
+            break
 
     print(f"\nTraining complete. Metrics → {METRICS_PATH}")
 
